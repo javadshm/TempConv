@@ -18,17 +18,24 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
 # Copy source
 COPY . .
 
-# Generate protobuf code (robust googleapis lookup)
+# Generate protobuf code (robust googleapis lookup with fallback)
 RUN set -e; \
-    GW_ROOT=$(go env GOPATH)/pkg/mod; \
-    GOOGLEAPIS=$(find "$GW_ROOT" -maxdepth 3 -type d -path "*/grpc-gateway@*/third_party/googleapis" | head -n1); \
-    echo "GOPATH mod root: $GW_ROOT"; \
-    echo "googleapis path: $GOOGLEAPIS"; \
-    [ -n "$GOOGLEAPIS" ] || { echo "googleapis include not found"; find "$GW_ROOT" -maxdepth 4 -type d -name googleapis; exit 1; }; \
+    GW_ROOT=$(go env GOMODCACHE); \
+    echo "GOMODCACHE: $GW_ROOT"; \
+    GOOGLEAPIS=$(find "$GW_ROOT" -maxdepth 6 -type d -path "*/grpc-gateway@*/third_party/googleapis" | head -n1); \
+    if [ -z "$GOOGLEAPIS" ]; then \
+      echo "googleapis not found in module cache, downloading..."; \
+      mkdir -p /tmp/googleapis && cd /tmp/googleapis && \
+        curl -L https://github.com/googleapis/googleapis/archive/refs/heads/master.zip -o ga.zip && \
+        unzip ga.zip >/dev/null && \
+        GOOGLEAPIS=/tmp/googleapis/googleapis-master; \
+    fi; \
+    echo "Using googleapis path: $GOOGLEAPIS"; \
+    [ -d "$GOOGLEAPIS" ] || { echo "googleapis include not found"; exit 1; }; \
     protoc -I. -I="$GOOGLEAPIS" \
-      --go_out=gen --go_opt=paths=source_relative \ 
-      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \ 
-      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \ 
+      --go_out=gen --go_opt=paths=source_relative \
+      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
+      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \
       --grpc-gateway_opt=generate_unbound_methods=true \
       api/tempconv.proto
 
