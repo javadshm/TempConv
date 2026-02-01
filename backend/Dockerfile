@@ -19,12 +19,14 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
 COPY . .
 
 # Generate protobuf code
-RUN /go/bin/protoc -I. -Ithird_party \
-    --go_out=gen --go_opt=paths=source_relative \
-    --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
-    --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \
-    --grpc-gateway_opt=generate_unbound_methods=true \
-    api/tempconv.proto
+RUN set -e; \
+    GATEWAY=$(go env GOPATH)/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v*/third_party/googleapis; \
+    protoc -I. -I="$GATEWAY" \
+      --go_out=gen --go_opt=paths=source_relative \
+      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
+      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \
+      --grpc-gateway_opt=generate_unbound_methods=true \
+      api/tempconv.proto
 
 # Build the server binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /tempconv ./cmd/server
