@@ -1,0 +1,30 @@
+# Local run: build for linux/amd64 (same as GKE). Backend :8080, Frontend :8081.
+# Browser must call backend at host:8080; set API_BASE so the app uses that (see build args).
+services:
+  backend:
+    build:
+      context: ./backend
+      platforms:
+        - linux/amd64
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+      args:
+        # So the browser (user) can call the backend; use host's localhost
+        API_BASE: http://localhost:8080
+    ports:
+      - "8081:80"
+    depends_on:
+      backend:
+        condition: service_healthy

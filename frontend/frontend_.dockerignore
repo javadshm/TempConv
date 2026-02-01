@@ -1,0 +1,17 @@
+.git
+.gitignore
+build
+.dart_tool
+.packages
+.pub-cache
+.flutter-plugins
+.flutter-plugins-dependencies
+.fvm
+.android
+.ios
+.macos
+.linux
+.windows
+.idea
+.vscode
+.DS_Store

@@ -1,0 +1,35 @@
+# GKE: uses the default Ingress controller (HTTP(S) Load Balancer).
+# One host: / serves frontend, /api goes to backend so the Flutter app can use same-origin.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tempconv-ingress
+  namespace: tempconv
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    # Optional: static IP and SSL (replace with your values)
+    # kubernetes.io/ingress.global-static-ip-name: "tempconv-ip"
+    # networking.gke.io/managed-certificates: "tempconv-cert"
+spec:
+  defaultBackend:
+    service:
+      name: tempconv-frontend
+      port:
+        number: 80
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: tempconv-backend
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tempconv-frontend
+                port:
+                  number: 80

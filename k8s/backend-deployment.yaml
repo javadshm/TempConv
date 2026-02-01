@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempconv-backend
+  namespace: tempconv
+  labels:
+    app: tempconv-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tempconv-backend
+  template:
+    metadata:
+      labels:
+        app: tempconv-backend
+    spec:
+      # GKE nodes are amd64; image must be built for linux/amd64
+      containers:
+        - name: backend
+          image: europe-west1-docker.pkg.dev/tempconvertor-485913/tempconv/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
