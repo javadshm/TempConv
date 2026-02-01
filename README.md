@@ -1,6 +1,6 @@
-# TempConv – Temperature conversion app (Go + Flutter, Docker, GKE)
+# TempConv – Temperature conversion app (Go gRPC + Flutter, Docker, GKE)
 
-Simple app: **backend** (Go) exposes two APIs (Celsius↔Fahrenheit); **frontend** (Flutter web) calls them. No database. Containerized with Docker and orchestrated on **Google Kubernetes Engine (GKE)**. Load tested with **k6**.
+Simple app: **backend** (Go) exposes a gRPC service with grpc-gateway providing an HTTP API at `/api/convert` for temperature conversion; **frontend** (Flutter web) calls it. No database. Containerized with Docker and orchestrated on **Google Kubernetes Engine (GKE)**. Load tested with **k6**.
 
 ---
 
@@ -8,10 +8,15 @@ Simple app: **backend** (Go) exposes two APIs (Celsius↔Fahrenheit); **frontend
 
 ```
 TempConv/
-├── backend/           # Go HTTP API (C↔F conversion)
-│   ├── main.go
-│   ├── main_test.go
+├── backend/           # Go gRPC + grpc-gateway API (C↔F conversion)
+│   ├── api/
+│   │   └── tempconv.proto  # Protobuf service definition
+│   ├── gen/           # Generated protobuf Go code
+│   ├── cmd/server/
+│   │   └── main.go    # Server implementation
 │   ├── go.mod
+│   ├── generate.sh    # Code generation script
+│   ├── CODEGEN.md     # Code generation documentation
 │   ├── Dockerfile
 │   └── .dockerignore
 ├── frontend/          # Flutter web app
@@ -35,22 +40,24 @@ TempConv/
 
 ---
 
-## Step 1 – Backend (Go)
+## Step 1 – Backend (Go with gRPC + grpc-gateway)
 
-**What we do:** Implement a small HTTP server with two conversion endpoints and a health check.
+**What we do:** Implement a gRPC service with HTTP gateway for temperature conversion using a single unified endpoint.
 
+- **Architecture:**
+  - gRPC server on port 9090 (internal)
+  - grpc-gateway HTTP proxy on port 8080 (exposed)
+  - Single conversion endpoint: `POST /api/convert`
+  
 - **Endpoints:**
-  - `POST /api/celsius-to-fahrenheit` – body `{"value": <number>}` → `{"value": <fahrenheit>}`
-  - `POST /api/fahrenheit-to-celsius` – body `{"value": <number>}` → `{"value": <celsius>}`
+  - `POST /api/convert` – body `{"value": <number>, "from_unit": "CELSIUS|FAHRENHEIT", "to_unit": "CELSIUS|FAHRENHEIT"}` → `{"value": <converted>}`
   - `GET /health` – returns `{"status":"ok"}` for probes
 
 **Run locally:**
 
 ```bash
 cd backend
-go build -o tempconv .
-./tempconv
-# Or: go run .
+go run ./cmd/server
 ```
 
 **Tests:**
@@ -59,6 +66,31 @@ go build -o tempconv .
 cd backend
 go test -v .
 ```
+
+**Test with curl:**
+
+```bash
+# Convert 0°C to Fahrenheit
+curl -X POST http://localhost:8080/api/convert \
+  -H "Content-Type: application/json" \
+  -d '{"value": 0, "from_unit": "CELSIUS", "to_unit": "FAHRENHEIT"}'
+
+# Convert 32°F to Celsius
+curl -X POST http://localhost:8080/api/convert \
+  -H "Content-Type: application/json" \
+  -d '{"value": 32, "from_unit": "FAHRENHEIT", "to_unit": "CELSIUS"}'
+```
+
+**Code Generation:**
+
+The backend uses protobuf for service definitions. To regenerate the Go code from `api/tempconv.proto`:
+
+```bash
+cd backend
+./generate.sh
+```
+
+See `backend/CODEGEN.md` for more details on code generation.
 
 ---
 
@@ -93,12 +125,12 @@ flutter create . --platforms web
 
 ## Step 3 – Containerization (Docker, amd64 for GKE)
 
-**What we do:** Build images for **linux/amd64** so they run on GKE nodes. Backend: multi-stage Go build. Frontend: Flutter web build + nginx to serve static files.
+**What we do:** Build images for **linux/amd64** so they run on GKE nodes. Backend: multi-stage Go build with protobuf generation. Frontend: Flutter web build + nginx to serve static files.
 
 **Build images (from repo root):**
 
 ```bash
-# Backend
+# Backend (builds with protobuf generation)
 docker build --platform linux/amd64 -t tempconv-backend:latest ./backend
 
 # Frontend (no API_BASE = same-origin, for K8s)
@@ -111,6 +143,8 @@ docker build --platform linux/amd64 -t tempconv-frontend:latest ./frontend
 docker compose up --build
 # Open http://localhost:8081
 ```
+
+**Note:** The backend Dockerfile automatically generates protobuf code during the build process, so no pre-generation is needed.
 
 ---
 
@@ -147,6 +181,7 @@ export REGISTRY=$REGION-docker.pkg.dev/$PROJECT_ID/tempconv
 gcloud artifacts repositories create tempconv --repository-format=docker --location=$REGION --project=$PROJECT_ID
 
 # Build and push (from repo root)
+# Note: Backend build includes automatic protobuf code generation
 docker build --platform linux/amd64 -t $REGISTRY/backend:latest ./backend
 docker build --platform linux/amd64 -t $REGISTRY/frontend:latest ./frontend
 docker push $REGISTRY/backend:latest
@@ -205,10 +240,16 @@ k6 reports success rate, latency (e.g. p95), and RPS. Adjust `replicas` for the 
 
 | Step | What | Command / location |
 |------|------|--------------------|
-| 1 | Go backend (C↔F API) | `backend/`, `go run .` / `go test .` |
+| 1 | Go backend (gRPC + HTTP gateway) | `backend/`, `go run ./cmd/server` / `go test .` |
 | 2 | Flutter web frontend | `frontend/`, `flutter run -d chrome` |
 | 3 | Docker (amd64) | `docker build --platform linux/amd64` for both; `docker compose up` |
 | 4 | GKE | Push to Artifact Registry, `kubectl apply -f k8s/` |
 | 5 | Load test | `k6 run loadtest/k6-load.js` (optionally with `BASE_URL`) |
+
+**Backend Architecture:**
+- gRPC service on port 9090 (internal communication)
+- grpc-gateway HTTP proxy on port 8080 (external HTTP/JSON API)
+- Single conversion endpoint: `/api/convert` with flexible unit specification
+- Protobuf-based service definitions with automatic code generation
 
 GKE nodes are **amd64**; all images in this guide are built with `--platform linux/amd64` so they run correctly on GKE.

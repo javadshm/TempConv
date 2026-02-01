@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package tempconv.v1;
+
+option go_package = "github.com/javadshm/TempConv/backend/gen/tempconv/v1;tempconv";
+
+import "google/api/annotations.proto";
+
+// Unit represents the temperature unit
+enum Unit {
+  UNIT_UNSPECIFIED = 0;
+  CELSIUS = 1;
+  FAHRENHEIT = 2;
+}
+
+// ConvertRequest represents a temperature conversion request
+message ConvertRequest {
+  // The temperature value to convert
+  double value = 1;
+  // The source unit
+  Unit from_unit = 2;
+  // The target unit
+  Unit to_unit = 3;
+}
+
+// ConvertResponse represents a temperature conversion response
+message ConvertResponse {
+  // The converted temperature value
+  double value = 1;
+}
+
+// ConvertService provides temperature conversion operations
+service ConvertService {
+  // Convert performs temperature conversion
+  rpc Convert(ConvertRequest) returns (ConvertResponse) {
+    option (google.api.http) = {
+      post: "/api/convert"
+      body: "*"
+    };
+  }
+}

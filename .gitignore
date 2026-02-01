@@ -1,0 +1,19 @@
+# Backend binaries
+backend/tempconv
+backend/tempconv.exe
+backend/server
+backend/*.exe
+
+# Frontend build
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

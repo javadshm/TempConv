@@ -1,0 +1,36 @@
+# Binaries
+tempconv
+tempconv.exe
+*.exe
+*.dll
+*.so
+*.dylib
+/server
+/cmd/server/server
+
+# Test binaries
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Build artifacts
+dist/
+build/
+
+# Generated protobuf code (optional - you may want to commit these)
+# gen/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
