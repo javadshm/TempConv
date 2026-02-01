@@ -18,17 +18,17 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
 # Copy source
 COPY . .
 
-# Generate protobuf code (with explicit gateway version)
+# Generate protobuf code (robust googleapis lookup)
 RUN set -e; \
-    GW_VER=$(go list -m -f '{{.Version}}' github.com/grpc-ecosystem/grpc-gateway/v2); \
-    GATEWAY=$(go env GOPATH)/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@${GW_VER}/third_party/googleapis; \
-    echo "Using grpc-gateway version: ${GW_VER}"; \
-    ls -al "$(dirname "$GATEWAY")" || true; \
-    [ -d "$GATEWAY" ] || { echo "googleapis include not found at $GATEWAY"; exit 1; }; \
-    protoc -I. -I"$GATEWAY" \
-      --go_out=gen --go_opt=paths=source_relative \
-      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
-      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \
+    GW_ROOT=$(go env GOPATH)/pkg/mod; \
+    GOOGLEAPIS=$(find "$GW_ROOT" -maxdepth 3 -type d -path "*/grpc-gateway@*/third_party/googleapis" | head -n1); \
+    echo "GOPATH mod root: $GW_ROOT"; \
+    echo "googleapis path: $GOOGLEAPIS"; \
+    [ -n "$GOOGLEAPIS" ] || { echo "googleapis include not found"; find "$GW_ROOT" -maxdepth 4 -type d -name googleapis; exit 1; }; \
+    protoc -I. -I="$GOOGLEAPIS" \
+      --go_out=gen --go_opt=paths=source_relative \ 
+      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \ 
+      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \ 
       --grpc-gateway_opt=generate_unbound_methods=true \
       api/tempconv.proto
 
