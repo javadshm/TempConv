@@ -5,8 +5,8 @@ tempconv.exe
 *.dll
 *.so
 *.dylib
-server
-cmd/server/server
+/server
+/cmd/server/server
 
 # Test binaries
 *.test
