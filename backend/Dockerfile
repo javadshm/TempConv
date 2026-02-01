@@ -1,8 +1,8 @@
 # Build stage
 FROM --platform=linux/amd64 golang:1.24-alpine AS builder
 
-# Install protoc and required tools
-RUN apk add --no-cache protobuf protobuf-dev curl unzip
+# Install protoc and required tools (add git)
+RUN apk add --no-cache protobuf protobuf-dev curl unzip git
 
 WORKDIR /app
 
@@ -22,11 +22,14 @@ COPY . .
 RUN set -e; \
     GW_VER=$(go list -m -f '{{.Version}}' github.com/grpc-ecosystem/grpc-gateway/v2); \
     GATEWAY=$(go env GOPATH)/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@${GW_VER}/third_party/googleapis; \
+    echo "Using grpc-gateway version: ${GW_VER}"; \
+    ls -al "$(dirname "$GATEWAY")" || true; \
+    [ -d "$GATEWAY" ] || { echo "googleapis include not found at $GATEWAY"; exit 1; }; \
     protoc -I. -I"$GATEWAY" \
-      --go_out=gen --go_opt=paths=source_relative \ 
-      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \ 
-      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \ 
-      --grpc-gateway_opt=generate_unbound_methods=true \ 
+      --go_out=gen --go_opt=paths=source_relative \
+      --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
+      --grpc-gateway_out=gen --grpc-gateway_opt=paths=source_relative \
+      --grpc-gateway_opt=generate_unbound_methods=true \
       api/tempconv.proto
 
 # Build server
