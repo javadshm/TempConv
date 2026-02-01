@@ -3,3 +3,14 @@
 Dockerfile
 .dockerignore
 README*
+CODEGEN.md
+generate.sh
+# Binaries
+tempconv
+tempconv.exe
+server
+*.exe
+# Build artifacts
+gen/
+*.test
+*.out
