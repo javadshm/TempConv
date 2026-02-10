@@ -71695,35 +71695,37 @@ l(){var s=this.d
 s.J$=$.ae()
 s.y2$=0
 this.aC()},
-p8(){var s=0,r=A.R(t.H),q,p=2,o,n=this,m,l,k,j,i,h,g,f,e,d,c
-var $async$p8=A.S(function(a,b){if(a===1){o=b
-s=p}while(true)switch(s){case 0:d=B.d.mB(n.d.a.a)
-if(d.length===0){n.ag(new A.a7C(n))
+p8(){var s=0,r=A.R(t.H),q,p=2,o,n=this,m,l,k,j,i,h,g,f,e,d,c,b,a
+var $async$p8=A.S(function(a0,a1){if(a0===1){o=a1
+s=p}while(true)switch(s){case 0:b=B.d.mB(n.d.a.a)
+if(b.length===0){n.ag(new A.a7C(n))
 s=1
-break}m=A.agV(d)
+break}m=A.agV(b)
 if(m==null){n.ag(new A.a7D(n))
 s=1
 break}n.ag(new A.a7E(n))
 p=4
-l=n.w?"/api/celsius-to-fahrenheit":"/api/fahrenheit-to-celsius"
-k=A.fE(A.axP()+A.k(l))
-g=t.N
-f=A.av(["Content-Type","application/json"],g,g)
+l=A.fE(A.axP()+"/convert")
+f=n.w
+k=f?"CELSIUS":"FAHRENHEIT"
+j=f?"FAHRENHEIT":"CELSIUS"
+e=t.N
+d=A.av(["Content-Type","application/json"],e,e)
 s=7
-return A.U(A.aBZ(k,B.cC.NL(A.av(["value",m],g,t.i),null),f),$async$p8)
-case 7:j=b
-if(j.b!==200){n.ag(new A.a7F(n,j))
+return A.U(A.aBZ(l,B.cC.NL(A.av(["value",m,"from_unit",k,"to_unit",j],e,t.K),null),d),$async$p8)
+case 7:i=a1
+if(i.b!==200){n.ag(new A.a7F(n,i))
 s=1
-break}g=j
-i=t.a.a(B.cC.Ni(A.aBb(A.azm(g.e)).f4(g.w),null))
-n.ag(new A.a7G(n,i))
+break}f=i
+h=t.a.a(B.cC.Ni(A.aBb(A.azm(f.e)).f4(f.w),null))
+n.ag(new A.a7G(n,h))
 p=2
 s=6
 break
 case 4:p=3
-c=o
-h=A.aq(c)
-n.ag(new A.a7H(n,h))
+a=o
+g=A.aq(a)
+n.ag(new A.a7H(n,g))
 s=6
 break
 case 3:s=2
