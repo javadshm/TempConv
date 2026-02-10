@@ -78,14 +78,20 @@ class _ConverterPageState extends State<ConverterPage> {
     });
 
     try {
-      final path = _celsiusToFahrenheit
-          ? '/api/celsius-to-fahrenheit'
-          : '/api/fahrenheit-to-celsius';
+      const path = '/convert'; // backend expects /api/convert; _apiBase ends with /api
       final uri = Uri.parse('$_apiBase$path');
+
+      final fromUnit = _celsiusToFahrenheit ? 'CELSIUS' : 'FAHRENHEIT';
+      final toUnit = _celsiusToFahrenheit ? 'FAHRENHEIT' : 'CELSIUS';
+
       final res = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'value': value}),
+        body: jsonEncode({
+          'value': value,
+          'from_unit': fromUnit,
+          'to_unit': toUnit,
+        }),
       );
       if (res.statusCode != 200) {
         setState(() {
@@ -136,11 +142,10 @@ class _ConverterPageState extends State<ConverterPage> {
                     Expanded(
                       child: TextField(
                         controller: _inputController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                              RegExp(r'[-0-9.]')), 
+                          FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]')), 
                         ],
                         decoration: InputDecoration(
                           labelText: from,
