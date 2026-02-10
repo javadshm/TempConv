@@ -32,11 +32,12 @@ class ConverterPage extends StatefulWidget {
 
 class _ConverterPageState extends State<ConverterPage> {
   static String get _apiBase {
-    // Override via --dart-define=API_BASE=https://api.example.com for K8s
-    const base = bool.hasEnvironment('API_BASE')
-        ? String.fromEnvironment('API_BASE')
-        : '';
-    return base;
+    // Allow override via --dart-define=API_BASE=...
+    const envBase =
+        bool.hasEnvironment('API_BASE') ? String.fromEnvironment('API_BASE') : '';
+    if (envBase.isNotEmpty) return envBase;
+    // Default to Render backend
+    return 'https://tempconv-80uz.onrender.com/api';
   }
 
   final _inputController = TextEditingController();
@@ -79,9 +80,7 @@ class _ConverterPageState extends State<ConverterPage> {
       final path = _celsiusToFahrenheit
           ? '/api/celsius-to-fahrenheit'
           : '/api/fahrenheit-to-celsius';
-      final uri = _apiBase.isEmpty
-          ? Uri.parse('${Uri.base.origin}$path')
-          : Uri.parse('$_apiBase$path');
+      final uri = Uri.parse('$_apiBase$path');
       final res = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -136,11 +135,10 @@ class _ConverterPageState extends State<ConverterPage> {
                     Expanded(
                       child: TextField(
                         controller: _inputController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                              RegExp(r'[-0-9.]')),
+                          FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]')),
                         ],
                         decoration: InputDecoration(
                           labelText: from,
